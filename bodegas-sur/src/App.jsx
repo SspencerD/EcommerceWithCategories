@@ -25,9 +25,7 @@ const App = () => {
         console.error(err);
       });
   };
-{
-  console.log('productos:',products)
-}
+
   return (
     <>
     <div
@@ -46,7 +44,6 @@ const App = () => {
     <div style={{
       display:'flex',
       flexDirection:'row',
-      marginTop:'10%',
       flexWrap:'wrap',
     }}>
     {products.length >0 ? products.map((item,index) =>(
