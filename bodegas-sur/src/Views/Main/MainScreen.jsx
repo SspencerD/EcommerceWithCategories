@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
-import { getAllproducts } from "./Api/products";
-import "./App.css";
-import CardsComponent from "./components/CardsComponent";
-import NavBarComponent from "./components/NavBarComponent";
+import React from "react";
+import CardsComponent from "../../components/CardsComponent";
+import NavBarComponent from "../../components/NavBarComponent";
 
-const App = () => {
+const MainScreen = (props) => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -62,4 +60,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default MainScreen;
