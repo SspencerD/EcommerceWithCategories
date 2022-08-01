@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { getAllproducts } from "../../Api/products";
+import { getAllproducts, getProductsByCategory } from "../../Api/products";
 import CardsComponent from "../../components/CardsComponent";
 import NavBarComponent from "../../components/NavBarComponent";
 
@@ -9,26 +9,19 @@ const CategoriesScreen = (props) => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    getProductsByCategory();
+    getProductsByCategories();
   }, [idCategory]);
 
-  const getProductsByCategory = () => {
-    getAllproducts()
+  const getProductsByCategories = () => {
+    getProductsByCategory(idCategory)
       .then((resp) => {
         if (resp.status === "ERROR") {
           console.log("ERROR", resp);
         } else {
           const result = resp.products;
+          console.log("RESULTADO FILTRO", result);
 
-          const filterByCategory = result.filter((item) => {
-            if (idCategory === undefined) {
-              return item;
-            } else {
-              return item.categoryId === parseInt(idCategory);
-            }
-          });
-          setProducts(filterByCategory);
-          console.log("RESULTADO FILTRO", filterByCategory);
+          setProducts(result);
         }
       })
       .catch((err) => {

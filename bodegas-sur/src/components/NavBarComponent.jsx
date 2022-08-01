@@ -10,15 +10,25 @@ import InputBase from "@mui/material/InputBase";
 import Badge from "@mui/material/Badge";
 import MenuItem from "@mui/material/MenuItem";
 import Menu from "@mui/material/Menu";
+import Grid from "@mui/material/Grid";
+import CloseIcon from "@mui/icons-material/Close";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import AccountCircle from "@mui/icons-material/AccountCircle";
-import MailIcon from "@mui/icons-material/Mail";
+import Drawer from "@mui/material/Drawer";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import MoreIcon from "@mui/icons-material/MoreVert";
 import { Link } from "react-router-dom";
 import { getAllCategories } from "../Api/categories";
+import "../Css/CartStyles.css";
+import { useAuth } from "../hooks/useAuth";
+import { useCart } from "../hooks/useCart";
+import ProductCardItems from "./ProductCartItems";
+import { currencyFormatter } from "../../utils/Money";
+import { Paper } from "@mui/material";
+import Swal from "sweetalert2";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -61,17 +71,31 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 export default function NavBarComponent() {
+  const { signOutUser, dataUser } = useAuth();
+  const { qtyCart, cartList, totalAmount, cleanCart, getOrderToBd } = useCart();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState(null);
   const [openProducts, setOpenProducts] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [openDrawer, setOpenDrawer] = useState(false);
   const openProduct = Boolean(openProducts);
   const isMenuOpen = Boolean(anchorEl);
   const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
+  const [loading, setLoading] = useState(false);
+
+  console.log("Cuanto tengo en el carrito?", qtyCart);
 
   useEffect(() => {
     getAllCategory();
   }, []);
+
+  useEffect(() => {
+    if (cartList.length > 0) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+  }, [cartList]);
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -91,6 +115,39 @@ export default function NavBarComponent() {
   };
 
   const menuId = "primary-search-account-menu";
+
+  const handleSignOut = () => {
+    signOutUser();
+  };
+
+  const handleCheckout = () => {
+    Swal.fire({
+      title: "Estas a punto de realizar esta compra",
+      text: "¿Estas seguro de realizar la compra?",
+      confirmButtonText: "Continuar",
+      denyButtonText: "Cancelar",
+      confirmButtonColor: "black",
+      denyButtonColor: "white",
+      preConfirm: () => {
+        try {
+          getOrderToBd();
+          Swal.fire(
+            "Orden de compra creada",
+            "Orden de compra creada con exito",
+            "success"
+          );
+          cleanCart();
+        } catch (error) {
+          Swal.fire(
+            "Ha ocurrido un error",
+            "No se ha podido generar la orden de compra",
+            "error"
+          );
+        }
+      },
+    });
+  };
+
   const renderMenu = (
     <Menu
       anchorEl={anchorEl}
@@ -104,15 +161,115 @@ export default function NavBarComponent() {
         vertical: "top",
         horizontal: "right",
       }}
+      sx={{
+        mt: "4%",
+      }}
       open={isMenuOpen}
       onClose={handleMenuClose}
     >
-      <MenuItem onClick={handleMenuClose}>iniciar sesión</MenuItem>
-      <MenuItem onClick={handleMenuClose}>Carrito</MenuItem>
-      <MenuItem onClick={handleMenuClose}>FAQ</MenuItem>
-      <MenuItem onClick={handleMenuClose}>Cerrar sesión</MenuItem>
+      {!dataUser ? (
+        <MenuItem
+          component={Link}
+          to="/signin"
+          sx={{
+            backgroundColor: "black",
+            color: "white",
+            fontSize: 15,
+            fontWeight: "500",
+            fontFamily: "Poppins",
+            "&:hover": {
+              backgroundColor: "white",
+              color: "black",
+            },
+          }}
+        >
+          iniciar sesión
+        </MenuItem>
+      ) : null}
+      <MenuItem
+        onClick={handleMenuClose}
+        sx={{
+          backgroundColor: "black",
+          color: "white",
+          fontSize: 15,
+          fontWeight: "500",
+          fontFamily: "Poppins",
+          "&:hover": {
+            backgroundColor: "white",
+            color: "black",
+          },
+        }}
+      >
+        Carrito
+      </MenuItem>
+      <MenuItem
+        onClick={handleMenuClose}
+        sx={{
+          backgroundColor: "black",
+          color: "white",
+          fontSize: 15,
+          fontWeight: "500",
+          fontFamily: "Poppins",
+          "&:hover": {
+            backgroundColor: "white",
+            color: "black",
+          },
+        }}
+      >
+        FAQ
+      </MenuItem>
+      {dataUser ? (
+        <MenuItem
+          onClick={handleSignOut}
+          sx={{
+            backgroundColor: "black",
+            color: "white",
+            fontSize: 15,
+            fontWeight: "500",
+            fontFamily: "Poppins",
+            "&:hover": {
+              backgroundColor: "white",
+              color: "black",
+            },
+          }}
+        >
+          Cerrar sesión
+        </MenuItem>
+      ) : null}
     </Menu>
   );
+
+  const loadingData = () => {
+    return (
+      <Grid
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: "column",
+          py: "10%",
+        }}
+      >
+        <CircularProgress
+          sx={{
+            width: 50,
+            height: 50,
+            color: "black",
+          }}
+        />
+        <Typography
+          sx={{
+            fontSize: 20,
+            fontWeight: "500",
+            fontFamily: "Poppins",
+            color: "black",
+          }}
+        >
+          NO hay productos aún el carrito
+        </Typography>
+      </Grid>
+    );
+  };
 
   const mobileMenuId = "primary-search-account-menu-mobile";
   const renderMobileMenu = (
@@ -132,8 +289,11 @@ export default function NavBarComponent() {
       onClose={handleMobileMenuClose}
     >
       <MenuItem>
-        <IconButton size="large" aria-label="show 4 new mails" color="inherit">
-          <Badge badgeContent={0} color="error">
+        <IconButton size="large" color="inherit">
+          <Badge
+            badgeContent={qtyCart === undefined ? 0 : qtyCart}
+            color="error"
+          >
             <ShoppingCartIcon />
           </Badge>
         </IconButton>
@@ -163,7 +323,214 @@ export default function NavBarComponent() {
         </IconButton>
         <p>Perfil</p>
       </MenuItem>
+      <MenuItem onClick={handleSignOut}>
+        <IconButton
+          size="large"
+          aria-label="Sign out user"
+          aria-controls="last-item-menu"
+          aria-haspopup="true"
+          color="inherit"
+        >
+          <AccountCircle />
+        </IconButton>
+        <p>Cerrar sesión</p>
+      </MenuItem>
     </Menu>
+  );
+
+  const renderDrawerCarts = (
+    <Drawer
+      anchor={"right"}
+      open={openDrawer}
+      onClose={() => {
+        setOpenDrawer(false);
+      }}
+    >
+      <Box sx={{ width: 450 }} role="presentation">
+        <Box
+          sx={{
+            display: "flex",
+            flex: 3,
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            height: 100,
+          }}
+        >
+          <Grid container spacing={2}>
+            <Grid
+              item
+              xs={8}
+              sx={{
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+              }}
+            >
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: 21,
+                  fontWeight: "600",
+                  fontFamily: "Poppins",
+                  color: "black",
+                  textAlign: "center",
+                  pl: "5%",
+                }}
+              >
+                Carrito de compra
+              </Typography>
+            </Grid>
+            <Grid
+              item
+              xs={4}
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                paddingRight: "5%",
+                // backgroundColor: "white",
+                width: "100%",
+              }}
+            >
+              <IconButton
+                color="error"
+                aria-label="close-drawer"
+                fontSize="large"
+                onClick={() => {
+                  setOpenDrawer(false);
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Grid>
+          </Grid>
+        </Box>
+        <Grid
+          container
+          direction="column"
+          justifyContent="flex-start"
+          alignItems="center"
+          sx={{
+            width: "100%",
+            height: 700,
+          }}
+        >
+          <Grid item>
+            {cartList.length > 0
+              ? cartList.map((item, index) => (
+                  <ProductCardItems key={index} item={item} />
+                ))
+              : loadingData()}
+          </Grid>
+        </Grid>
+        <Box
+          component={Paper}
+          elevation={9}
+          direction="row"
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            display: "flex",
+
+            width: "100%",
+            height: 100,
+            paddingLeft: "5%",
+            pt: "5%",
+          }}
+        >
+          <Grid container spacing={2} direction="column">
+            <Grid item xs>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  color: "black",
+                }}
+              >
+                SubTotal
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  color: "black",
+                }}
+              >
+                Total
+              </Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} direction="column">
+            <Grid item xs>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  color: "black",
+                }}
+              >
+                {currencyFormatter(totalAmount, "$")}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  color: "black",
+                }}
+              >
+                {currencyFormatter(Math.round(totalAmount * 1.19), "$")}
+              </Typography>
+            </Grid>
+          </Grid>
+          <Grid
+            container
+            spacing={2}
+            sx={{
+              width: "100%",
+            }}
+            direction="row"
+            justifyContent="center"
+            alignItems="center"
+          >
+            {cartList.length > 0 ? (
+              <Button
+                onClick={handleCheckout}
+                variant="contained"
+                color="info"
+                size="large"
+                sx={{
+                  backgroundColor: "black",
+                  "&:hover": {
+                    backgroundColor: "white",
+                    color: "black",
+                  },
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: 16,
+                    fontFamily: "Poppins",
+                    fontWeight: "600",
+                  }}
+                >
+                  Pagar
+                </Typography>
+              </Button>
+            ) : null}
+          </Grid>
+        </Box>
+      </Box>
+    </Drawer>
   );
 
   const handleOpenProducts = (event) => {
@@ -206,7 +573,15 @@ export default function NavBarComponent() {
             variant="p"
             noWrap
             component="div"
-            sx={{ display: { xs: "none", sm: "block" } }}
+            sx={{
+              display: {
+                xs: "none",
+                sm: "block",
+                fontSize: 20,
+                fontWeight: "bold",
+                fontFamily: "Poppins",
+              },
+            }}
           >
             Bodegas del sur
           </Typography>
@@ -217,6 +592,11 @@ export default function NavBarComponent() {
             <StyledInputBase
               placeholder="Busqueda..."
               inputProps={{ "aria-label": "search" }}
+              sx={{
+                fontSize: 15,
+                fontWeight: "500",
+                fontFamily: "Poppins",
+              }}
             />
           </Search>
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
@@ -229,10 +609,17 @@ export default function NavBarComponent() {
               <Button
                 component={Link}
                 to={"/"}
-                style={{
+                sx={{
                   color: "white",
                   fontWeight: 500,
                   cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: "600",
+                  fontFamily: "Poppins",
+                  "&:hover": {
+                    backgroundColor: "white",
+                    color: "black",
+                  },
                 }}
               >
                 Inicio
@@ -250,10 +637,17 @@ export default function NavBarComponent() {
                 aria-haspopup="true"
                 aria-expanded={openProduct ? "true" : undefined}
                 onClick={handleOpenProducts}
-                style={{
+                sx={{
                   color: "white",
                   fontWeight: 500,
                   cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: "600",
+                  fontFamily: "Poppins",
+                  "&:hover": {
+                    backgroundColor: "white",
+                    color: "black",
+                  },
                 }}
               >
                 Categorias
@@ -272,6 +666,17 @@ export default function NavBarComponent() {
                     key={index}
                     component={Link}
                     to={`/categorias/${item.id}`}
+                    sx={{
+                      backgroundColor: "black",
+                      color: "white",
+                      fontSize: 14,
+                      fontFamily: "Poppins",
+                      fontWeight: "500",
+                      "&:hover": {
+                        backgroundColor: "white",
+                        color: "black",
+                      },
+                    }}
                   >
                     {item.name}
                   </MenuItem>
@@ -283,10 +688,13 @@ export default function NavBarComponent() {
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
             <IconButton
               size="large"
-              aria-label="show 4 new mails"
+              aria-label="Tu carrito"
               color="inherit"
+              onClick={() => {
+                setOpenDrawer(true);
+              }}
             >
-              <Badge badgeContent={0} color="error">
+              <Badge badgeContent={qtyCart ? qtyCart : 0} color="error">
                 <ShoppingCartIcon />
               </Badge>
             </IconButton>
@@ -327,6 +735,7 @@ export default function NavBarComponent() {
       </AppBar>
       {renderMobileMenu}
       {renderMenu}
+      {renderDrawerCarts}
     </Box>
   );
 }
